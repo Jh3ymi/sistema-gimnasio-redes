@@ -1,2 +1,597 @@
-<h1>Sistema Web de Recepción - Gimnasio TECBA</h1>
-<p>Plataforma en desarrollo - Redes de Computadoras II.</p>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recepción · Gimnasio TECBA</title>
+<!--
+  Sistema Web de Recepción - Gimnasio TECBA
+  Redes de Computadoras II · Frontend (Humberto)
+
+  - Página estática (HTML + CSS + JS puro) lista para GitHub Pages.
+  - Consume la API REST de Elkin (JSON + CORS). Contrato en API_CONTRATO.md.
+  - Si no hay URL de API configurada, funciona en MODO DEMO con datos de prueba.
+-->
+<style>
+  :root{
+    --bg:#0f1216; --panel:#171b21; --panel2:#1e232b; --line:#2a313b;
+    --txt:#e8ecf1; --muted:#93a0b0; --accent:#f5a524; --accent2:#ffcc66;
+    --ok:#2fbf71; --okbg:rgba(47,191,113,.12);
+    --warn:#f5a524; --warnbg:rgba(245,165,36,.12);
+    --bad:#ef4b4b; --badbg:rgba(239,75,75,.13);
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  button,input,select{font:inherit;color:inherit}
+  header{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line);background:#12161b;position:sticky;top:0;z-index:5}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.3px}
+  .logo{width:34px;height:34px;border-radius:9px;background:var(--accent);color:#1a1200;display:grid;place-items:center;font-weight:900}
+  .brand small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+  nav{display:flex;gap:6px;margin-left:24px}
+  nav button{background:none;border:1px solid transparent;padding:8px 14px;border-radius:8px;cursor:pointer;color:var(--muted)}
+  nav button.active{background:var(--panel2);border-color:var(--line);color:var(--txt)}
+  .spacer{flex:1}
+  .pill{font-size:12px;padding:4px 10px;border-radius:99px;border:1px solid var(--line);color:var(--muted);display:flex;align-items:center;gap:6px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+  .pill.on .dot{background:var(--ok)} .pill.demo .dot{background:var(--warn)} .pill.off .dot{background:var(--bad)}
+  #reloj{font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+  .iconbtn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;cursor:pointer}
+  main{padding:20px 24px;max-width:1400px;margin:0 auto}
+  .grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px}
+  @media(max-width:980px){.grid{grid-template-columns:1fr} nav{margin-left:0}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .card h2{margin:0 0 12px;font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600}
+  .search{display:flex;gap:10px}
+  .search input{flex:1;background:var(--bg);border:2px solid var(--line);border-radius:10px;padding:14px 16px;font-size:22px;letter-spacing:1px;outline:none}
+  .search input:focus{border-color:var(--accent)}
+  .btn{background:var(--accent);color:#1a1200;border:0;border-radius:10px;padding:0 20px;font-weight:700;cursor:pointer}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn.sec{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+  .btn.ok{background:var(--ok);color:#04190d}
+  .hint{color:var(--muted);font-size:13px;margin-top:8px}
+  .alerta{margin-top:16px;border-radius:10px;padding:14px 16px;display:flex;gap:12px;align-items:center;font-weight:600;font-size:17px;border:1px solid}
+  .alerta.ok{background:var(--okbg);border-color:var(--ok);color:#8be4b4}
+  .alerta.warn{background:var(--warnbg);border-color:var(--warn);color:var(--accent2)}
+  .alerta.bad{background:var(--badbg);border-color:var(--bad);color:#ff9d9d;animation:pulso 1.2s ease-in-out 3}
+  .alerta .ico{font-size:26px;line-height:1}
+  .alerta small{display:block;font-weight:400;font-size:13px;opacity:.9}
+  @keyframes pulso{50%{box-shadow:0 0 0 6px rgba(239,75,75,.25)}}
+  .socio{display:flex;gap:20px;margin-top:16px;align-items:flex-start}
+  .foto{width:170px;height:200px;border-radius:12px;object-fit:cover;background:var(--panel2);border:3px solid var(--line);flex-shrink:0}
+  .foto.ok{border-color:var(--ok)} .foto.warn{border-color:var(--warn)} .foto.bad{border-color:var(--bad);filter:grayscale(.5)}
+  .datos{flex:1;min-width:0}
+  .datos h3{margin:0 0 4px;font-size:24px}
+  .datos .ci{color:var(--muted);margin-bottom:14px}
+  dl{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:0}
+  dt{color:var(--muted)} dd{margin:0;font-weight:600}
+  .deuda{color:var(--bad)}
+  .acciones{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+  .acciones .btn{padding:12px 18px}
+  .vacio{color:var(--muted);text-align:center;padding:50px 10px;border:1px dashed var(--line);border-radius:10px;margin-top:16px}
+  .hist{margin-top:16px;font-size:13px;color:var(--muted);max-height:160px;overflow:auto}
+  .hist div{padding:5px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+  .hist .neg{color:var(--bad)} .hist .pos{color:var(--ok)}
+  /* Ventas */
+  .vinculo{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:14px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+  .vinculo input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;width:140px}
+  .productos{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+  .prod{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:left;cursor:pointer;transition:.12s}
+  .prod:hover{border-color:var(--accent)}
+  .prod b{display:block;font-size:14px} .prod span{color:var(--accent2);font-size:13px}
+  .prod em{display:block;color:var(--muted);font-size:11px;font-style:normal}
+  .carrito{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+  .item{display:flex;align-items:center;gap:8px;padding:6px 0}
+  .item .n{flex:1}
+  .qty{display:flex;align-items:center;gap:4px}
+  .qty button{width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:var(--bg);cursor:pointer}
+  .total{display:flex;justify-content:space-between;font-size:20px;font-weight:700;margin:12px 0}
+  .pago{display:flex;gap:6px;margin-bottom:12px}
+  .pago label{flex:1;text-align:center;padding:8px;border:1px solid var(--line);border-radius:8px;cursor:pointer;font-size:14px}
+  .pago input{display:none}
+  .pago input:checked+span{color:var(--accent2)}
+  .pago label:has(input:checked){border-color:var(--accent);background:var(--warnbg)}
+  .full{width:100%;padding:13px!important}
+  /* Corte de caja */
+  .resumen{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px}
+  .kpi{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px}
+  .kpi small{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.8px}
+  .kpi b{display:block;font-size:24px;margin-top:4px;font-variant-numeric:tabular-nums}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .barra{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+  .barra input{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  .barra .btn{padding:9px 14px}
+  .oculto{display:none!important}
+  /* Toast + modal */
+  #toast{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:20}
+  .t{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--accent);padding:10px 14px;border-radius:8px;max-width:340px;font-size:14px;animation:entra .2s}
+  .t.ok{border-left-color:var(--ok)} .t.bad{border-left-color:var(--bad)}
+  @keyframes entra{from{transform:translateY(8px);opacity:0}}
+  dialog{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:12px;padding:20px;width:min(480px,92vw)}
+  dialog::backdrop{background:rgba(0,0,0,.6)}
+  dialog input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;margin:8px 0}
+  @media print{
+    header,nav,.barra,#vistaRecepcion,#toast{display:none!important}
+    body{background:#fff;color:#000} .card,.kpi{background:#fff;border-color:#ccc} th,dt,.kpi small{color:#555}
+    #vistaCaja{display:block!important}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><div class="logo">T</div><div>Gimnasio TECBA<small>Sistema de recepción</small></div></div>
+  <nav>
+    <button class="active" data-vista="vistaRecepcion">Recepción y ventas</button>
+    <button data-vista="vistaCaja">Corte de caja</button>
+  </nav>
+  <div class="spacer"></div>
+  <span id="reloj"></span>
+  <span id="estadoApi" class="pill demo"><span class="dot"></span><span id="estadoTxt">Modo demo</span></span>
+  <button class="iconbtn" id="btnConfig" title="Configurar API">⚙</button>
+</header>
+
+<main>
+  <!-- ================= RECEPCIÓN + VENTAS ================= -->
+  <section id="vistaRecepcion" class="grid">
+    <div class="card">
+      <h2>Control de acceso</h2>
+      <form class="search" id="formBuscar" autocomplete="off">
+        <input id="inpCI" inputmode="numeric" placeholder="Carnet de Identidad (CI)" maxlength="15" autofocus>
+        <button class="btn" type="submit">Buscar</button>
+      </form>
+      <div class="hint" id="hintDemo">Modo demo: prueba con CI <b>1234567</b>, <b>7654321</b>, <b>5550001</b> o <b>9988776</b>.</div>
+      <div id="resultado"><div class="vacio">Ingresa el CI del socio y presiona Enter.</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Venta de mostrador</h2>
+      <div class="vinculo">
+        <span>Venta vinculada al CI:</span>
+        <input id="ventaCI" inputmode="numeric" placeholder="CI del cliente">
+      </div>
+      <div class="productos" id="productos"></div>
+      <div class="carrito" id="carrito"></div>
+      <div class="total"><span>Total</span><span id="total">Bs 0.00</span></div>
+      <div class="pago">
+        <label><input type="radio" name="pago" value="efectivo" checked><span>Efectivo</span></label>
+        <label><input type="radio" name="pago" value="qr"><span>QR</span></label>
+        <label><input type="radio" name="pago" value="tarjeta"><span>Tarjeta</span></label>
+      </div>
+      <button class="btn ok full" id="btnVender" disabled>Registrar venta</button>
+    </div>
+  </section>
+
+  <!-- ================= CORTE DE CAJA ================= -->
+  <section id="vistaCaja" class="oculto">
+    <div class="barra">
+      <label>Fecha <input type="date" id="fechaCorte"></label>
+      <button class="btn sec" id="btnActualizarCorte">Actualizar</button>
+      <button class="btn sec" id="btnCSV">Exportar CSV</button>
+      <button class="btn" id="btnImprimir">Imprimir corte</button>
+    </div>
+    <div class="card">
+      <h2 id="tituloCorte">Corte de caja</h2>
+      <div class="resumen" id="kpis"></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr;margin-bottom:16px">
+        <div><h2>Por producto</h2><table id="tProd"></table></div>
+        <div><h2>Por método de pago</h2><table id="tPago"></table></div>
+      </div>
+      <h2>Detalle de ventas</h2>
+      <table id="tVentas"></table>
+    </div>
+  </section>
+</main>
+
+<dialog id="dlgConfig">
+  <h3 style="margin-top:0">Conexión con la API</h3>
+  <p class="hint">URL base de la API REST (servidor de Elkin). Déjala vacía para usar el modo demo.<br>
+  Ejemplo: <code>https://api-gimnasio.ejemplo.com/api</code></p>
+  <input id="inpApi" placeholder="https://.../api">
+  <div class="acciones" style="justify-content:flex-end">
+    <button class="btn sec" id="btnProbar" type="button">Probar conexión</button>
+    <button class="btn" id="btnGuardarApi" type="button">Guardar</button>
+  </div>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   CONFIGURACIÓN
+   La URL de la API se puede fijar aquí (para producción) o
+   desde el botón ⚙ (se guarda en el navegador).
+   ========================================================= */
+const API_POR_DEFECTO = ""; // ej: "https://api-gimnasio.ejemplo.com/api"
+const DIAS_AVISO_VENCIMIENTO = 5;
+
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v===null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+let API = store.get("gym_api_url", API_POR_DEFECTO) || "";
+const modoDemo = () => !API;
+
+/* =========================================================
+   UTILIDADES
+   ========================================================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const bs = n => "Bs " + Number(n||0).toFixed(2);
+const hoyISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const fechaLarga = iso => iso ? new Date(iso+"T12:00:00").toLocaleDateString("es-BO",{day:"2-digit",month:"short",year:"numeric"}) : "—";
+const diasHasta = iso => Math.round((new Date(iso+"T00:00:00") - new Date(hoyISO()+"T00:00:00"))/86400000);
+
+function toast(msg, tipo=""){
+  const el = document.createElement("div");
+  el.className = "t " + tipo; el.textContent = msg;
+  $("#toast").appendChild(el); setTimeout(()=>el.remove(), 4000);
+}
+
+function avatar(nombre){
+  const ini = String(nombre||"?").split(/\s+/).filter(Boolean).slice(0,2).map(p=>p[0].toUpperCase()).join("");
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='170' height='200'><rect width='100%' height='100%' fill='#252b34'/><text x='50%' y='55%' font-family='sans-serif' font-size='64' fill='#93a0b0' text-anchor='middle' dominant-baseline='middle'>${ini}</text></svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+
+/* =========================================================
+   CAPA DE DATOS: API REST (Elkin) o MODO DEMO
+   ========================================================= */
+async function http(metodo, ruta, cuerpo){
+  const r = await fetch(API.replace(/\/$/,"") + ruta, {
+    method: metodo,
+    headers: { "Content-Type":"application/json", "Accept":"application/json" },
+    body: cuerpo ? JSON.stringify(cuerpo) : undefined
+  });
+  let data = null; try{ data = await r.json(); }catch(e){}
+  if(!r.ok){ const e = new Error((data && (data.mensaje||data.message||data.error)) || ("HTTP "+r.status)); e.status=r.status; throw e; }
+  return data;
+}
+
+// Acepta varias formas de nombrar campos para no depender del formato exacto del backend
+function normalizarSocio(s){
+  if(!s) return null;
+  s = s.data || s.socio || s;
+  const nombre = s.nombre_completo || s.nombre || [s.nombres, s.apellidos].filter(Boolean).join(" ");
+  return {
+    ci: String(s.ci ?? s.carnet ?? ""),
+    nombre,
+    foto: s.foto_url || s.foto || s.fotografia || "",
+    plan: s.plan || s.membresia || s.tipo_membresia || "—",
+    vence: (s.fecha_vencimiento || s.vencimiento || s.fecha_fin || "").slice(0,10),
+    deuda: Number(s.deuda ?? s.saldo_pendiente ?? 0),
+    telefono: s.telefono || s.celular || "",
+    ultimos: s.ultimos_accesos || s.accesos || []
+  };
+}
+const normalizarProducto = p => ({ id: p.id ?? p.producto_id, nombre: p.nombre, precio: Number(p.precio), stock: p.stock ?? null, categoria: p.categoria || "" });
+
+/* ---------- Datos de prueba (modo demo) ---------- */
+const sumarDias = n => { const d=new Date(); d.setDate(d.getDate()+n); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const DEMO_SOCIOS = {
+  "1234567": { ci:"1234567", nombre:"María Fernanda Quispe", plan:"Mensual full", fecha_vencimiento: sumarDias(22), deuda:0, telefono:"71234567" },
+  "7654321": { ci:"7654321", nombre:"Jorge Luis Mamani",     plan:"Mensual",      fecha_vencimiento: sumarDias(-4), deuda:0, telefono:"76543210" },
+  "5550001": { ci:"5550001", nombre:"Carla Rojas Vargas",    plan:"Trimestral",   fecha_vencimiento: sumarDias(40), deuda:150, telefono:"70011223" },
+  "9988776": { ci:"9988776", nombre:"Diego Choque Limachi",  plan:"Mensual",      fecha_vencimiento: sumarDias(3),  deuda:0, telefono:"69988776" }
+};
+const DEMO_PRODUCTOS = [
+  { id:1, nombre:"Agua 600 ml",        precio:5,   categoria:"Bebidas",     stock:48 },
+  { id:2, nombre:"Agua 2 L",           precio:10,  categoria:"Bebidas",     stock:20 },
+  { id:3, nombre:"Bebida isotónica",   precio:12,  categoria:"Bebidas",     stock:30 },
+  { id:4, nombre:"Proteína (scoop)",   precio:15,  categoria:"Suplementos", stock:60 },
+  { id:5, nombre:"Barra proteica",     precio:14,  categoria:"Suplementos", stock:25 },
+  { id:6, nombre:"Creatina (dosis)",   precio:8,   categoria:"Suplementos", stock:40 },
+  { id:7, nombre:"Pre-entreno (dosis)",precio:10,  categoria:"Suplementos", stock:30 },
+  { id:8, nombre:"Toalla alquiler",    precio:5,   categoria:"Servicios",   stock:null }
+];
+
+const Datos = {
+  async socio(ci){
+    if(modoDemo()){
+      const s = DEMO_SOCIOS[ci]; if(!s){ const e=new Error("No encontrado"); e.status=404; throw e; }
+      const accesos = store.get("demo_accesos",[]).filter(a=>a.ci===ci).slice(-5).reverse();
+      return normalizarSocio({...s, accesos});
+    }
+    return normalizarSocio(await http("GET", "/socios/" + encodeURIComponent(ci)));
+  },
+  async registrarAcceso(ci){
+    if(modoDemo()){
+      const a = store.get("demo_accesos",[]); a.push({ci, fecha_hora:new Date().toISOString(), resultado:"permitido"});
+      store.set("demo_accesos", a.slice(-200)); return {ok:true};
+    }
+    return http("POST", "/accesos", { ci, resultado:"permitido" });
+  },
+  async registrarIntentoDenegado(ci, motivo){
+    if(modoDemo()){
+      const a = store.get("demo_accesos",[]); a.push({ci, fecha_hora:new Date().toISOString(), resultado:"denegado", motivo});
+      store.set("demo_accesos", a.slice(-200)); return;
+    }
+    try{ await http("POST", "/accesos", { ci, resultado:"denegado", motivo }); }catch(e){ /* opcional en backend */ }
+  },
+  async productos(){
+    if(modoDemo()) return DEMO_PRODUCTOS;
+    const r = await http("GET", "/productos");
+    return (r.data || r.productos || r).map(normalizarProducto);
+  },
+  async registrarVenta(venta){
+    if(modoDemo()){
+      const v = store.get("demo_ventas",[]);
+      const nueva = { id: (v.at(-1)?.id || 1000) + 1, fecha_hora:new Date().toISOString(), ...venta };
+      v.push(nueva); store.set("demo_ventas", v); return nueva;
+    }
+    return http("POST", "/ventas", venta);
+  },
+  async corte(fecha){
+    if(modoDemo()){
+      const ventas = store.get("demo_ventas",[]).filter(v => {
+        const d=new Date(v.fecha_hora); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10)===fecha;
+      });
+      return { fecha, ventas };
+    }
+    const r = await http("GET", "/caja/corte?fecha=" + fecha);
+    return { fecha, ventas: r.ventas || r.data || [] };
+  }
+};
+
+/* =========================================================
+   ESTADO DE CONEXIÓN
+   ========================================================= */
+function pintarEstado(estado){
+  const p = $("#estadoApi");
+  p.className = "pill " + (estado==="on"?"on":estado==="off"?"off":"demo");
+  $("#estadoTxt").textContent = estado==="on" ? "API conectada" : estado==="off" ? "API sin respuesta" : "Modo demo";
+  $("#hintDemo").classList.toggle("oculto", !modoDemo());
+}
+async function probarApi(url){
+  const r = await fetch(url.replace(/\/$/,"") + "/productos", {headers:{Accept:"application/json"}});
+  if(!r.ok) throw new Error("HTTP " + r.status);
+}
+async function verificarConexion(){
+  if(modoDemo()) return pintarEstado("demo");
+  try{ await probarApi(API); pintarEstado("on"); }catch(e){ pintarEstado("off"); }
+}
+
+/* =========================================================
+   RECEPCIÓN: búsqueda por CI, alertas y bloqueo
+   ========================================================= */
+let socioActual = null;
+
+function evaluar(s){
+  if(s.deuda > 0)
+    return { nivel:"bad", ico:"⛔", titulo:"ACCESO BLOQUEADO POR DEUDA", detalle:`Saldo pendiente de ${bs(s.deuda)}. Debe regularizar el pago antes de ingresar.`, permitido:false, motivo:"deuda" };
+  if(!s.vence)
+    return { nivel:"bad", ico:"⛔", titulo:"SIN MEMBRESÍA ACTIVA", detalle:"El socio no tiene una membresía registrada.", permitido:false, motivo:"sin_membresia" };
+  const d = diasHasta(s.vence);
+  if(d < 0)
+    return { nivel:"bad", ico:"⚠", titulo:"MEMBRESÍA VENCIDA", detalle:`Venció hace ${-d} día${d===-1?"":"s"} (${fechaLarga(s.vence)}). Debe renovar para ingresar.`, permitido:false, motivo:"vencida" };
+  if(d <= DIAS_AVISO_VENCIMIENTO)
+    return { nivel:"warn", ico:"⏳", titulo:"ACCESO PERMITIDO · POR VENCER", detalle: d===0 ? "La membresía vence hoy. Recordar la renovación." : `Vence en ${d} día${d===1?"":"s"} (${fechaLarga(s.vence)}). Recordar la renovación.`, permitido:true };
+  return { nivel:"ok", ico:"✔", titulo:"ACCESO PERMITIDO", detalle:`Membresía vigente hasta ${fechaLarga(s.vence)} (${d} días).`, permitido:true };
+}
+
+function pintarSocio(s){
+  const ev = evaluar(s);
+  const hist = (s.ultimos||[]).map(a => {
+    const f = new Date(a.fecha_hora || a.fecha).toLocaleString("es-BO",{dateStyle:"short",timeStyle:"short"});
+    const neg = (a.resultado||"permitido")!=="permitido";
+    return `<div><span>${esc(f)}</span><span class="${neg?"neg":"pos"}">${esc(a.resultado||"permitido")}${a.motivo?" · "+esc(a.motivo):""}</span></div>`;
+  }).join("");
+
+  $("#resultado").innerHTML = `
+    <div class="alerta ${ev.nivel}"><span class="ico">${ev.ico}</span><div>${ev.titulo}<small>${esc(ev.detalle)}</small></div></div>
+    <div class="socio">
+      <img class="foto ${ev.nivel}" id="fotoSocio" alt="Fotografía de ${esc(s.nombre)}" src="${esc(s.foto || avatar(s.nombre))}">
+      <div class="datos">
+        <h3>${esc(s.nombre)}</h3>
+        <div class="ci">CI ${esc(s.ci)}${s.telefono?" · Cel. "+esc(s.telefono):""}</div>
+        <dl>
+          <dt>Plan</dt><dd>${esc(s.plan)}</dd>
+          <dt>Vencimiento</dt><dd>${fechaLarga(s.vence)}</dd>
+          <dt>Deuda</dt><dd class="${s.deuda>0?"deuda":""}">${bs(s.deuda)}</dd>
+        </dl>
+        <div class="acciones">
+          <button class="btn ok" id="btnIngreso" ${ev.permitido?"":"disabled"}>${ev.permitido?"Registrar ingreso":"Ingreso bloqueado"}</button>
+          <button class="btn sec" id="btnLimpiar">Nueva búsqueda</button>
+        </div>
+      </div>
+    </div>
+    ${hist ? `<div class="hist"><b>Últimos accesos</b>${hist}</div>` : ""}`;
+
+  const img = $("#fotoSocio");
+  img.onerror = () => { img.onerror = null; img.src = avatar(s.nombre); };
+  $("#btnLimpiar").onclick = limpiar;
+  $("#btnIngreso").onclick = async () => {
+    try{ await Datos.registrarAcceso(s.ci); toast(`Ingreso registrado: ${s.nombre}`, "ok"); limpiar(); }
+    catch(e){ toast("No se pudo registrar el ingreso: " + e.message, "bad"); }
+  };
+  if(!ev.permitido) Datos.registrarIntentoDenegado(s.ci, ev.motivo);
+}
+
+function limpiar(){
+  socioActual = null;
+  $("#inpCI").value = "";
+  $("#resultado").innerHTML = `<div class="vacio">Ingresa el CI del socio y presiona Enter.</div>`;
+  $("#inpCI").focus();
+}
+
+$("#formBuscar").addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const ci = $("#inpCI").value.trim().replace(/\s+/g,"");
+  if(!/^\d{4,12}[A-Za-z0-9-]{0,3}$/.test(ci)){ toast("Ingresa un CI válido (solo números, opcional extensión).", "bad"); return; }
+  $("#resultado").innerHTML = `<div class="vacio">Buscando CI ${esc(ci)}…</div>`;
+  try{
+    socioActual = await Datos.socio(ci);
+    pintarSocio(socioActual);
+    $("#ventaCI").value = socioActual.ci; // vincula la venta al socio encontrado
+  }catch(e){
+    socioActual = null;
+    $("#resultado").innerHTML = e.status===404
+      ? `<div class="alerta bad"><span class="ico">✖</span><div>CI ${esc(ci)} NO REGISTRADO<small>No existe un socio con ese carnet. Verifica el número o registra al socio.</small></div></div>`
+      : `<div class="alerta bad"><span class="ico">✖</span><div>ERROR DE CONEXIÓN<small>${esc(e.message)}. Revisa la URL de la API (⚙) o que el servidor permita CORS.</small></div></div>`;
+  }
+});
+$("#inpCI").addEventListener("input", e => { e.target.value = e.target.value.replace(/[^\dA-Za-z-]/g,""); });
+
+/* =========================================================
+   VENTAS DE MOSTRADOR
+   ========================================================= */
+let productos = [];
+let carrito = new Map(); // id -> {producto, cantidad}
+
+async function cargarProductos(){
+  try{ productos = await Datos.productos(); }
+  catch(e){ productos = []; toast("No se pudieron cargar los productos: " + e.message, "bad"); }
+  $("#productos").innerHTML = productos.map(p => `
+    <button class="prod" data-id="${esc(p.id)}" ${p.stock===0?"disabled":""}>
+      <b>${esc(p.nombre)}</b><span>${bs(p.precio)}</span>
+      <em>${esc(p.categoria)}${p.stock!=null?" · stock "+esc(p.stock):""}</em>
+    </button>`).join("") || `<div class="hint">Sin productos.</div>`;
+  document.querySelectorAll(".prod").forEach(b => b.onclick = () => agregar(b.dataset.id));
+}
+
+function agregar(id){
+  const p = productos.find(x => String(x.id)===String(id)); if(!p) return;
+  const it = carrito.get(String(id)) || { producto:p, cantidad:0 };
+  if(p.stock!=null && it.cantidad >= p.stock){ toast("Stock insuficiente", "bad"); return; }
+  it.cantidad++; carrito.set(String(id), it); pintarCarrito();
+}
+function cambiar(id, d){
+  const it = carrito.get(id); if(!it) return;
+  if(d>0 && it.producto.stock!=null && it.cantidad>=it.producto.stock){ toast("Stock insuficiente","bad"); return; }
+  it.cantidad += d; if(it.cantidad<=0) carrito.delete(id); pintarCarrito();
+}
+const totalCarrito = () => [...carrito.values()].reduce((t,i)=>t+i.producto.precio*i.cantidad, 0);
+
+function pintarCarrito(){
+  const items = [...carrito.entries()];
+  $("#carrito").innerHTML = items.length ? items.map(([id,i]) => `
+    <div class="item">
+      <span class="n">${esc(i.producto.nombre)}</span>
+      <div class="qty"><button data-id="${esc(id)}" data-d="-1">−</button><b style="min-width:22px;text-align:center">${i.cantidad}</b><button data-id="${esc(id)}" data-d="1">+</button></div>
+      <span style="min-width:80px;text-align:right">${bs(i.producto.precio*i.cantidad)}</span>
+    </div>`).join("") : `<div class="hint">Toca un producto para agregarlo.</div>`;
+  document.querySelectorAll(".qty button").forEach(b => b.onclick = () => cambiar(b.dataset.id, Number(b.dataset.d)));
+  $("#total").textContent = bs(totalCarrito());
+  $("#btnVender").disabled = !items.length;
+}
+
+$("#ventaCI").addEventListener("input", e => { e.target.value = e.target.value.replace(/[^\dA-Za-z-]/g,""); });
+
+$("#btnVender").onclick = async () => {
+  const ci = $("#ventaCI").value.trim();
+  if(!ci){ toast("La venta debe estar vinculada a un CI.", "bad"); $("#ventaCI").focus(); return; }
+  const venta = {
+    ci,
+    metodo_pago: document.querySelector("input[name=pago]:checked").value,
+    items: [...carrito.values()].map(i => ({ producto_id:i.producto.id, nombre:i.producto.nombre, cantidad:i.cantidad, precio_unitario:i.producto.precio, subtotal:+(i.producto.precio*i.cantidad).toFixed(2) })),
+    total: +totalCarrito().toFixed(2)
+  };
+  $("#btnVender").disabled = true;
+  try{
+    const r = await Datos.registrarVenta(venta);
+    toast(`Venta registrada${r && r.id ? " #"+r.id : ""}: ${bs(venta.total)} (CI ${ci})`, "ok");
+    carrito.clear(); pintarCarrito(); cargarProductos();
+  }catch(e){
+    toast("No se pudo registrar la venta: " + e.message, "bad"); $("#btnVender").disabled = false;
+  }
+};
+
+/* =========================================================
+   CORTE DE CAJA DIGITAL
+   ========================================================= */
+let corteActual = null;
+
+async function cargarCorte(){
+  const fecha = $("#fechaCorte").value || hoyISO();
+  $("#tituloCorte").textContent = "Corte de caja · " + fechaLarga(fecha);
+  try{ corteActual = await Datos.corte(fecha); }
+  catch(e){ toast("No se pudo obtener el corte: " + e.message, "bad"); corteActual = {fecha, ventas:[]}; }
+  const ventas = corteActual.ventas;
+  const total = ventas.reduce((t,v)=>t+Number(v.total||0),0);
+  const unidades = ventas.reduce((t,v)=>t+(v.items||[]).reduce((a,i)=>a+Number(i.cantidad||0),0),0);
+
+  const porPago = {}; const porProd = {};
+  ventas.forEach(v => {
+    porPago[v.metodo_pago] = (porPago[v.metodo_pago]||0) + Number(v.total||0);
+    (v.items||[]).forEach(i => {
+      const k = i.nombre || ("Producto "+i.producto_id);
+      porProd[k] = porProd[k] || {cant:0, monto:0};
+      porProd[k].cant += Number(i.cantidad||0);
+      porProd[k].monto += Number(i.subtotal ?? i.precio_unitario*i.cantidad);
+    });
+  });
+
+  $("#kpis").innerHTML = `
+    <div class="kpi"><small>Total del día</small><b>${bs(total)}</b></div>
+    <div class="kpi"><small>Efectivo en caja</small><b>${bs(porPago.efectivo||0)}</b></div>
+    <div class="kpi"><small>N.º de ventas</small><b>${ventas.length}</b></div>
+    <div class="kpi"><small>Unidades vendidas</small><b>${unidades}</b></div>`;
+
+  $("#tProd").innerHTML = `<tr><th>Producto</th><th class="num">Cant.</th><th class="num">Monto</th></tr>` +
+    (Object.entries(porProd).sort((a,b)=>b[1].monto-a[1].monto).map(([n,x]) =>
+      `<tr><td>${esc(n)}</td><td class="num">${x.cant}</td><td class="num">${bs(x.monto)}</td></tr>`).join("") || `<tr><td colspan="3" class="hint">Sin ventas</td></tr>`);
+
+  $("#tPago").innerHTML = `<tr><th>Método</th><th class="num">Monto</th></tr>` +
+    (["efectivo","qr","tarjeta"].map(m => `<tr><td style="text-transform:capitalize">${m}</td><td class="num">${bs(porPago[m]||0)}</td></tr>`).join("")) +
+    `<tr><td><b>Total</b></td><td class="num"><b>${bs(total)}</b></td></tr>`;
+
+  $("#tVentas").innerHTML = `<tr><th>N.º</th><th>Hora</th><th>CI</th><th>Detalle</th><th>Pago</th><th class="num">Total</th></tr>` +
+    (ventas.slice().reverse().map(v => `<tr>
+      <td>${esc(v.id ?? "")}</td>
+      <td>${esc(new Date(v.fecha_hora).toLocaleTimeString("es-BO",{hour:"2-digit",minute:"2-digit"}))}</td>
+      <td>${esc(v.ci)}</td>
+      <td>${esc((v.items||[]).map(i=>`${i.cantidad}× ${i.nombre||i.producto_id}`).join(", "))}</td>
+      <td style="text-transform:capitalize">${esc(v.metodo_pago)}</td>
+      <td class="num">${bs(v.total)}</td></tr>`).join("") || `<tr><td colspan="6" class="hint">No hay ventas registradas en esta fecha.</td></tr>`);
+}
+
+function exportarCSV(){
+  if(!corteActual) return;
+  const filas = [["id","fecha_hora","ci","producto","cantidad","precio_unitario","subtotal","metodo_pago"]];
+  corteActual.ventas.forEach(v => (v.items||[]).forEach(i =>
+    filas.push([v.id, v.fecha_hora, v.ci, i.nombre||i.producto_id, i.cantidad, i.precio_unitario, i.subtotal ?? i.precio_unitario*i.cantidad, v.metodo_pago])));
+  const csv = "﻿" + filas.map(f => f.map(c => `"${String(c??"").replace(/"/g,'""')}"`).join(";")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv;charset=utf-8"}));
+  a.download = `corte_caja_${corteActual.fecha}.csv`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+
+$("#btnActualizarCorte").onclick = cargarCorte;
+$("#fechaCorte").onchange = cargarCorte;
+$("#btnCSV").onclick = exportarCSV;
+$("#btnImprimir").onclick = () => window.print();
+
+/* =========================================================
+   NAVEGACIÓN, CONFIGURACIÓN Y ARRANQUE
+   ========================================================= */
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("active", x===b));
+  ["vistaRecepcion","vistaCaja"].forEach(v => $("#"+v).classList.toggle("oculto", v!==b.dataset.vista));
+  if(b.dataset.vista==="vistaCaja") cargarCorte(); else $("#inpCI").focus();
+});
+
+$("#btnConfig").onclick = () => { $("#inpApi").value = API; $("#dlgConfig").showModal(); };
+$("#btnProbar").onclick = async () => {
+  const url = $("#inpApi").value.trim();
+  if(!url) return toast("Sin URL: se usará el modo demo.");
+  if(location.protocol==="https:" && url.startsWith("http:")) toast("Atención: GitHub Pages usa HTTPS y el navegador bloquea APIs en http:// (contenido mixto).", "bad");
+  try{ await probarApi(url); toast("Conexión correcta con la API", "ok"); }
+  catch(e){ toast("Sin respuesta: " + e.message + " (¿CORS habilitado?)", "bad"); }
+};
+$("#btnGuardarApi").onclick = () => {
+  API = $("#inpApi").value.trim(); store.set("gym_api_url", API);
+  $("#dlgConfig").close(); verificarConexion(); cargarProductos(); limpiar();
+};
+
+setInterval(() => { $("#reloj").textContent = new Date().toLocaleString("es-BO",{weekday:"short",day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",second:"2-digit"}); }, 1000);
+$("#fechaCorte").value = hoyISO();
+verificarConexion();
+cargarProductos();
+pintarCarrito();
+</script>
+</body>
+</html>
