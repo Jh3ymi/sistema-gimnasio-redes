@@ -64,7 +64,31 @@ It is also sent with `"resultado": "denegado", "motivo": "deuda" | "vencida" | "
 **201**: `{ "id": 1001, "fecha_hora": "2026-11-18T10:30:00", ... }`
 `metodo_pago`: `efectivo` | `qr` | `tarjeta`. The backend should reduce stock.
 
-## 5. Daily cash-register close
+## 5. Available membership plans
+`GET /planes`
+```json
+[
+  { "id": 1, "nombre": "Mensual full", "duracion_dias": 30, "precio": 150 },
+  { "id": 2, "nombre": "Quincenal", "duracion_dias": 15, "precio": 90 }
+]
+```
+Used to populate the plan selector in the "charge / renew membership" dialog.
+
+## 6. Charge / renew a membership
+`POST /membresias`
+```json
+{ "ci": "1234567", "plan_id": 1, "monto_pagado": 150 }
+```
+**201**
+```json
+{ "id": 1, "ci": "1234567", "plan_id": 1, "fecha_inicio": "2026-11-20", "fecha_fin": "2026-12-20", "monto_pagado": 150 }
+```
+If the member already has a membership that hasn't expired yet, the new period starts the day after
+it ends (renewal keeps continuity instead of shortening the paid time). `monto_pagado` can be less
+than the plan's price; the difference becomes `deuda` the next time `GET /socios/{ci}` is called.
+**404**: CI not registered, or `plan_id` not found.
+
+## 7. Daily cash-register close
 `GET /caja/corte?fecha=YYYY-MM-DD`
 ```json
 {
